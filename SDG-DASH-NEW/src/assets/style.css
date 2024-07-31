@@ -1,0 +1,71 @@
+body {
+    background-color: black !important;
+    color: white !important;
+    margin: 0;
+    padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6, p, div {
+    color: white;
+}
+
+.custom-dropdown {
+    width: 50%;
+    margin-bottom: 20px;
+}
+
+/* Target the main container */
+#main-container {
+    background-color: black !important;
+    color: white !important;
+    padding: 20px;
+}
+
+.graph-container {
+    margin-bottom: 20px;
+}
+
+/* input box */
+.Select-control {
+    background-color: black;
+}
+
+/* changes the text color of input box */
+.Select-value-label {
+    color: white !important;
+}
+
+.Select--single > .Select-control .Select-value, .Select-placeholder {
+    border: 1px solid grey;
+    border-radius: 4px;
+}
+
+/* dropdown menu options */
+.VirtualizedSelectOption {
+    background-color: black;
+    color: white;
+}
+
+/* dropdown menu hover effect */
+.VirtualizedSelectFocusedOption {
+    background-color: black;
+    opacity: .7;
+}
+
+/* border on focus - default is blue
+ * shadow box around input box.  default is blue
+ */
+.is-focused:not(.is-open) > .Select-control {
+    border-color: var(--primary); 
+    box-shadow: none;
+}
+
+/* this colors the input box text and x of multi dropdown */
+.Select--multi .Select-value {
+    color: white;
+}
+
+/* Specific class for colored text */
+.score-value {
+    color: #FFD700 !important;
+}
