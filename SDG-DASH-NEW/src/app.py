@@ -57,7 +57,8 @@ def main_layout():
         html.Div(id='company-info'),
         html.Div(id='mean-scores', style={'padding': '20px', 'display': 'flex', 'justify-content': 'space-around'}),
         html.Div([
-            html.Div([dcc.Graph(id='gauge-graph')], className='graph-container', style={'flex': '1'}),
+            html.Div([dcc.Graph(id='gauge-graph-1')], className='graph-container', style={'flex': '1'}),
+            html.Div([dcc.Graph(id='gauge-graph-2')], className='graph-container', style={'flex': '1'}),
             html.Div([dcc.Graph(id='sdg-graph')], className='graph-container', style={'flex': '1'})
         ], style={'display': 'flex', 'justify-content': 'space-around', 'padding': '20px'})
     ])
@@ -76,20 +77,11 @@ def time_series_layout():
                 end_date=default_end_date,
                 display_format='YYYY-MM-DD',
                 style={'display': 'inline-block', 'marginLeft': '10px'}
-            ),
-            html.Label('Select SDG:', style={'color': 'white', 'fontSize': '18px', 'marginLeft': '20px'}),
-            dcc.Dropdown(
-                id='sdg-dropdown',
-                options=[{'label': f'SDG_{i}', 'value': f'SDG_{i}'} for i in range(1, 18)],
-                value='SDG_1',  # Ensure this value matches a column in the DataFrame
-                className='custom-dropdown',
-                style={'width': '200px', 'marginLeft': '10px', 'height': 'auto'}
             )
         ], style={'display': 'flex', 'alignItems': 'center', 'padding': '20px'}),
-        #dcc.Graph(id='timeseries-graph'),
         html.Div([
-            html.H3("Specific SDG Sentiment Over Time", style={'color': 'white', 'textAlign': 'center'}),
-            dcc.Graph(id='timeseries-graph')
+            html.H3("Short-term Score (STS) Over Time", style={'color': 'white', 'textAlign': 'center'}),
+            dcc.Graph(id='sts-mean-timeseries-graph')
         ], style={'padding': '20px'}),
         html.Div([
             html.H3("Overall SDG Sentiment Over Time", style={'color': 'white', 'textAlign': 'center'}),
@@ -120,7 +112,8 @@ def display_page(pathname):
 @app.callback(
     [Output('company-info', 'children'),
      Output('mean-scores', 'children'),
-     Output('gauge-graph', 'figure'),
+     Output('gauge-graph-1', 'figure'),
+     Output('gauge-graph-2', 'figure'),
      Output('sdg-graph', 'figure')],
     [Input('company-dropdown', 'value'),
      Input('date-picker', 'date')]
@@ -139,39 +132,41 @@ def update_dashboard(selected_company, selected_date):
 
         sts_mean = filtered_df['STS_Mean'].iloc[0]
         lts_mean = filtered_df['LTS_Mean'].iloc[0]
-        sdg_mean = filtered_df['SDG_Mean'].iloc[0]
+        sts_overall_mean = df['STS_Mean'].mean()
+        lts_overall_mean = df['LTS_Mean'].mean()
+        #sdg_mean = filtered_df['SDG_Mean'].iloc[0]
 
         mean_scores = [
             html.Div([
-                html.H3("Short-term Score (7-day Moving Average)"),
+                html.H3("Short-term Score (STS)"),
                 html.P(f"{sts_mean:.4f}", className='score-value')
             ], style={'textAlign': 'center'}),
             html.Div([
-                html.H3("Long-term Score (14-day Moving Average)"),
+                html.H3("Long-term Score (LTS)"),
                 html.P(f"{lts_mean:.4f}", className='score-value')
             ], style={'textAlign': 'center'})
         ]
 
         fig2 = go.Figure(go.Indicator(
             mode="gauge+number",
-            value=sdg_mean,
+            value=sts_overall_mean,
             gauge={
                 'axis': {'range': [-3, 3]},
                 'bar': {'color': 'rgba(0,0,0,0)', 'thickness': 0.2},
                 'threshold': {
-                    'line': {'color': 'red' if sdg_mean < 0 else 'green', 'width': 6},
+                    'line': {'color': 'red' if sts_overall_mean < 0 else 'green', 'width': 6},
                     'thickness': 1,
-                    'value': sdg_mean
+                    'value': sts_overall_mean
                 },
                 'steps': [
                     {'range': [-3, 0], 'color': 'rgba(255, 0, 0, 0.3)'},
                     {'range': [0, 3], 'color': 'rgba(0, 255, 0, 0.3)'}
                 ],
             },
-            name='Overall SDG sentiment'
+            name='Overall STS Score'
         ))
         fig2.update_layout(
-            title='Overall SDG sentiment',
+            title='Overall STS Score',
             paper_bgcolor='black',
             plot_bgcolor='black',
             font=dict(color='white')
@@ -196,44 +191,67 @@ def update_dashboard(selected_company, selected_date):
             plot_bgcolor='black',
             font=dict(color='white')
         )
+
+        fig4 = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=lts_overall_mean,
+            gauge={
+                'axis': {'range': [-3, 3]},
+                'bar': {'color': 'rgba(0,0,0,0)', 'thickness': 0.2},
+                'threshold': {
+                    'line': {'color': 'red' if lts_overall_mean < 0 else 'green', 'width': 6},
+                    'thickness': 1,
+                    'value': lts_overall_mean
+                },
+                'steps': [
+                    {'range': [-3, 0], 'color': 'rgba(255, 0, 0, 0.3)'},
+                    {'range': [0, 3], 'color': 'rgba(0, 255, 0, 0.3)'}
+                ],
+            },
+            name='Overall LTS Score'
+        ))
+        fig4.update_layout(
+            title='Overall LTS Score',
+            paper_bgcolor='black',
+            plot_bgcolor='black',
+            font=dict(color='white')
+        )
     else:
         company_info = [html.H2("No data available for the selected date")]
         mean_scores = [html.Div(html.H3("No data available"))]
         fig2 = go.Figure()
         fig3 = go.Figure()
 
-    return company_info, mean_scores, fig2, fig3
+    return company_info, mean_scores, fig2, fig3, fig4
 
 # Callback for the time-series analysis page
 @app.callback(
-    Output('timeseries-graph', 'figure'),
+    Output('sts-mean-timeseries-graph', 'figure'),
     [Input('date-range-picker', 'start_date'),
-     Input('date-range-picker', 'end_date'),
-     Input('sdg-dropdown', 'value')]
+     Input('date-range-picker', 'end_date')]
 )
-def update_timeseries(start_date, end_date, selected_sdg):
-    # Ensure that the selected SDG is not None and corresponds to a column
-    if selected_sdg is None or selected_sdg not in df.columns:
-        return go.Figure()
-
+def update_sts_mean_timeseries(start_date, end_date):
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
     filtered_df = df[(df['Timestamp'] >= start_date) & (df['Timestamp'] <= end_date)]
+    # Fill missing data with forward fill
+    filtered_df = filtered_df.set_index('Timestamp').resample('D').ffill().reset_index()
+
 
     fig = go.Figure()
     if not filtered_df.empty:
         fig.add_trace(go.Scatter(
             x=filtered_df['Timestamp'],
-            y=filtered_df[selected_sdg],
-            mode='lines+markers',
-            name=selected_sdg,
+            y=filtered_df['STS_Mean'],
+            mode='lines',
+            name='STS_Mean',
             line=dict(color='blue')
         ))
 
     fig.update_layout(
-        title=f'Time-Series Analysis of {selected_sdg}',
+        #title='Time-Series of STS Mean',
         xaxis_title='Date',
-        yaxis_title='Value',
+        yaxis_title='STS Mean Value',
         paper_bgcolor='black',
         plot_bgcolor='black',
         font=dict(color='white')
@@ -251,19 +269,22 @@ def update_sdg_mean_timeseries(start_date, end_date):
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
     filtered_df = df[(df['Timestamp'] >= start_date) & (df['Timestamp'] <= end_date)]
+    # Fill missing data with forward fill
+    filtered_df = filtered_df.set_index('Timestamp').resample('D').ffill().reset_index()
+
 
     fig = go.Figure()
     if not filtered_df.empty:
         fig.add_trace(go.Scatter(
             x=filtered_df['Timestamp'],
             y=filtered_df['SDG_Mean'],
-            mode='lines+markers',
+            mode='lines',
             name='SDG_Mean',
             line=dict(color='orange')
         ))
 
     fig.update_layout(
-        title='Time-Series of Overall SDG Sentiment',
+        #title='Time-Series of Overall SDG Sentiment',
         xaxis_title='Date',
         yaxis_title='SDG Mean Value',
         paper_bgcolor='black',
@@ -275,4 +296,3 @@ def update_sdg_mean_timeseries(start_date, end_date):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
-
